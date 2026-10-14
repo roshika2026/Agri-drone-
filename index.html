@@ -56,9 +56,6 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
@@ -109,6 +106,46 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // Pure React SVG Icon helper components (prevents DOM mutation crash from Lucide global scanner)
+        const Icon = ({ name, className = "w-4 h-4" }) => {
+            const icons = {
+                cpu: <path d="M12 2v2M12 20v2M2 12h2M20 12h2M6 6l1.5 1.5M16.5 16.5L18 18M6 18l1.5-1.5M16.5 7.5L18 6M9 9h6v6H9z" />,
+                activity: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
+                'search-code': <path d="m13 13.5 2 2.5 4-5M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />,
+                'map-pin': <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />,
+                bug: <path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3 3 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6ZM12 20v-9M6 13H2M22 13h-4M20 7.5l-3.5 2M7.5 9.5 4 7.5M20 18.5l-3.5-2M7.5 16.5 4 18.5" />,
+                sliders: <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />,
+                'octagon-alert': <path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2zM12 8v4M12 16h.01" />,
+                'line-chart': <path d="M3 3v18h18M18 17l-5-5-4 4-4-5" />,
+                'cloud-sun': <path d="M12 2v2M4.93 4.93l1.41 1.41M20 12h2M19.07 4.93l-1.41 1.41M15.9 8.6a5 5 0 1 0-7.8 6.5H18a4.5 4.5 0 0 0 .8-8.9z" />,
+                'toggle-left': <rect width="20" height="12" x="2" y="6" rx="6" ry="6" />,
+                'brain-circuit': <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />,
+                search: <circle cx="11" cy="11" r="8" />,
+                'external-link': <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />,
+                sparkles: <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" />,
+                'arrow-up-right': <path d="M7 17 17 7M7 7h10v10" />,
+                map: <path d="M14.12 3.88 16 2M9 7.13v-1a3 3 0 1 1 6 0v1M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z" />,
+                plane: <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.2c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />,
+                'scan-line': <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />,
+                'triangle-alert': <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01" />
+            };
+
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
+
         function App() {
             // Navigation State
             const [activeTab, setActiveTab] = useState('telemetry');
@@ -149,15 +186,8 @@
                 { id: 3, name: 'Night Frost Shield', condition: 'Soil Temp < 10°C', action: 'Enable Under-bed Thermal Mats', active: false }
             ]);
 
-            // OpenWeather Fetch
+            // OpenWeather Fetch Key
             const OPENWEATHER_KEY = '1bd24c09f5d8675f2e77a3366efb85f4';
-
-            useEffect(() => {
-                // Initialize Lucide Icons
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            });
 
             useEffect(() => {
                 const timer = setInterval(() => setTime(new Date()), 1000);
@@ -204,7 +234,7 @@
                 setSearchResult(null);
 
                 try {
-                    // Step 1: Search Wikipedia API
+                    // Step 1: Search Wikipedia API with origin=* for CORS compliance
                     const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery + " agriculture farming")}&format=json&origin=*`;
                     const res = await fetch(searchUrl);
                     const data = await res.json();
@@ -273,7 +303,7 @@
                     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center space-x-4">
                             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-950/50">
-                                <i data-lucide="cpu" className="w-5 h-5"></i>
+                                <Icon name="cpu" className="w-5 h-5" />
                                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
                             </div>
                             <div>
@@ -313,7 +343,7 @@
                                         : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border-rose-500/40 hover:border-rose-500 shadow-slate-950'
                                 }`}
                             >
-                                <i data-lucide="octagon-alert" className="w-4 h-4"></i>
+                                <Icon name="octagon-alert" className="w-4 h-4" />
                                 <span>{emergencyHalt ? 'SYSTEM HALTED' : 'E-STOP SHUTDOWN'}</span>
                             </button>
                         </div>
@@ -329,7 +359,7 @@
                                     : 'border-transparent text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            <i data-lucide="activity" className="w-4 h-4"></i>
+                            <Icon name="activity" className="w-4 h-4" />
                             <span>TELEMETRY & COMMAND</span>
                         </button>
 
@@ -341,7 +371,7 @@
                                     : 'border-transparent text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            <i data-lucide="search-code" className="w-4 h-4"></i>
+                            <Icon name="search-code" className="w-4 h-4" />
                             <span>AI GROUNDING BRIEFING</span>
                         </button>
 
@@ -353,7 +383,7 @@
                                     : 'border-transparent text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            <i data-lucide="map-pin" className="w-4 h-4"></i>
+                            <Icon name="map-pin" className="w-4 h-4" />
                             <span>GEOSPATIAL TWIN & DRONE HUD</span>
                         </button>
 
@@ -365,7 +395,7 @@
                                     : 'border-transparent text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            <i data-lucide="bug" className="w-4 h-4"></i>
+                            <Icon name="bug" className="w-4 h-4" />
                             <span>PATHOLOGY SCANNER</span>
                         </button>
 
@@ -377,7 +407,7 @@
                                     : 'border-transparent text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            <i data-lucide="sliders" className="w-4 h-4"></i>
+                            <Icon name="sliders" className="w-4 h-4" />
                             <span>AUTOMATION ENGINE</span>
                         </button>
                     </nav>
@@ -466,7 +496,7 @@
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
-                                                    <i data-lucide="line-chart" className="w-4 h-4 text-emerald-400"></i>
+                                                    <Icon name="line-chart" className="w-4 h-4 text-emerald-400" />
                                                     <span>24-Hour Telemetry Dynamics</span>
                                                 </h3>
                                                 <p className="text-xs text-slate-400 font-mono-tech">Soil Moisture (%) vs Soil Temperature (°C)</p>
@@ -485,7 +515,7 @@
                                         <div className="cyber-glass p-6 rounded-2xl space-y-4">
                                             <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                                                 <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
-                                                    <i data-lucide="cloud-sun" className="w-4 h-4 text-cyan-400"></i>
+                                                    <Icon name="cloud-sun" className="w-4 h-4 text-cyan-400" />
                                                     <span>Live Micro-Climate (Chennai)</span>
                                                 </h3>
                                                 <span className="text-[10px] font-mono-tech text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">OpenWeather</span>
@@ -520,7 +550,7 @@
                                         {/* Closed-Loop Actuator Switches */}
                                         <div className="cyber-glass p-6 rounded-2xl space-y-4">
                                             <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2 border-b border-slate-800/80 pb-3">
-                                                <i data-lucide="toggle-left" className="w-4 h-4 text-emerald-400"></i>
+                                                <Icon name="toggle-left" className="w-4 h-4 text-emerald-400" />
                                                 <span>Actuator & Solenoid Control Array</span>
                                             </h3>
 
@@ -578,7 +608,7 @@
                             <div className="cyber-glass p-6 rounded-2xl space-y-6">
                                 <div className="border-b border-slate-800/80 pb-4">
                                     <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                                        <i data-lucide="brain-circuit" className="w-5 h-5 text-emerald-400"></i>
+                                        <Icon name="brain-circuit" className="w-5 h-5 text-emerald-400" />
                                         <span>Keyless Agricultural Knowledge Briefing Engine</span>
                                     </h3>
                                     <p className="text-xs text-slate-400 font-mono-tech mt-1">
@@ -595,7 +625,7 @@
                                             placeholder="Enter agricultural topic (e.g., Nitrogen Fixation, Drip Irrigation, Crop Rotation, Wheat Rust)..."
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 pl-11 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition font-mono-tech"
                                         />
-                                        <i data-lucide="search" className="w-4 h-4 text-slate-500 absolute left-4 top-4"></i>
+                                        <Icon name="search" className="w-4 h-4 text-slate-500 absolute left-4 top-4" />
                                     </div>
 
                                     <div className="flex flex-wrap items-center justify-end gap-3">
@@ -607,7 +637,7 @@
                                             }}
                                             className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-mono-tech text-xs rounded-xl transition flex items-center space-x-2"
                                         >
-                                            <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
+                                            <Icon name="external-link" className="w-3.5 h-3.5" />
                                             <span>DuckDuckGo (New Tab)</span>
                                         </button>
 
@@ -619,7 +649,7 @@
                                             }}
                                             className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-mono-tech text-xs rounded-xl transition flex items-center space-x-2"
                                         >
-                                            <i data-lucide="search" className="w-3.5 h-3.5"></i>
+                                            <Icon name="search" className="w-3.5 h-3.5" />
                                             <span>Google Search</span>
                                         </button>
 
@@ -632,7 +662,7 @@
                                                 <span>SEARCHING TELEMETRY...</span>
                                             ) : (
                                                 <>
-                                                    <i data-lucide="sparkles" className="w-4 h-4"></i>
+                                                    <Icon name="sparkles" className="w-4 h-4" />
                                                     <span>GENERATE IN-APP BRIEF</span>
                                                 </>
                                             )}
@@ -667,7 +697,7 @@
                                                 className="text-emerald-400 hover:underline flex items-center space-x-1"
                                             >
                                                 <span>Read Complete Article</span>
-                                                <i data-lucide="arrow-up-right" className="w-3.5 h-3.5"></i>
+                                                <Icon name="arrow-up-right" className="w-3.5 h-3.5" />
                                             </a>
                                         </div>
                                     </div>
@@ -683,7 +713,7 @@
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
-                                                <i data-lucide="map" className="w-4 h-4 text-emerald-400"></i>
+                                                <Icon name="map" className="w-4 h-4 text-emerald-400" />
                                                 <span>Interactive Farm Zone Geospatial Twin</span>
                                             </h3>
                                             <p className="text-xs text-slate-400 font-mono-tech">Click field zones to inspect live NDVI vegetation health index</p>
@@ -748,7 +778,7 @@
                                 <div className="cyber-glass p-6 rounded-2xl space-y-4">
                                     <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
                                         <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
-                                            <i data-lucide="plane" className="w-4 h-4 text-cyan-400"></i>
+                                            <Icon name="plane" className="w-4 h-4 text-cyan-400" />
                                             <span>Drone Patrol HUD Video Feed</span>
                                         </h3>
                                         <span className="text-[10px] font-mono-tech text-rose-400 animate-pulse bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">LIVE</span>
@@ -786,7 +816,7 @@
                             <div className="cyber-glass p-6 rounded-2xl space-y-6">
                                 <div className="border-b border-slate-800/80 pb-4">
                                     <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                                        <i data-lucide="scan-line" className="w-5 h-5 text-amber-400"></i>
+                                        <Icon name="scan-line" className="w-5 h-5 text-amber-400" />
                                         <span>Automated Pathology & Pest Diagnostic Scanner</span>
                                     </h3>
                                     <p className="text-xs text-slate-400 font-mono-tech mt-1">
@@ -853,7 +883,7 @@
                             <div className="cyber-glass p-6 rounded-2xl space-y-6">
                                 <div className="border-b border-slate-800/80 pb-4">
                                     <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                                        <i data-lucide="cpu" className="w-5 h-5 text-cyan-400"></i>
+                                        <Icon name="cpu" className="w-5 h-5 text-cyan-400" />
                                         <span>Autonomous Rules & Trigger Rules Engine</span>
                                     </h3>
                                     <p className="text-xs text-slate-400 font-mono-tech mt-1">
@@ -896,7 +926,7 @@
                         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
                             <div className="cyber-glass p-6 rounded-2xl max-w-md w-full border-rose-500/50 space-y-4">
                                 <div className="flex items-center space-x-3 text-rose-400">
-                                    <i data-lucide="triangle-alert" className="w-6 h-6"></i>
+                                    <Icon name="triangle-alert" className="w-6 h-6" />
                                     <h3 className="text-lg font-bold font-mono-tech">CONFIRM EMERGENCY E-STOP</h3>
                                 </div>
                                 <p className="text-xs text-slate-300">
