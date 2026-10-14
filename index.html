@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgriVision AI — Smart Farm Dashboard</title>
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & Babel for interface components -->
+    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,9 +22,9 @@
             const [loading, setLoading] = React.useState(false);
             const [activeTab, setActiveTab] = React.useState('dashboard');
 
-            // API Keys (Both Free!)
+            // API Keys
             const OPENWEATHER_KEY = '1bd24c09f5d8675f2e77a3366efb85f4';
-            const GEMINI_KEY = 'AIzaSyYourActualGeminiApiKeyHere'; // <--- Paste your free Gemini AIzaSy... key here
+            const GEMINI_KEY = 'AIzaSyYourActualGeminiApiKeyHere'; // <--- PASTE YOUR AIzaSy... KEY HERE
 
             // Fetch Live Weather on Load
             React.useEffect(() => {
@@ -34,7 +34,7 @@
                     .catch(err => console.error('Weather fetch error:', err));
             }, []);
 
-            // Handle Free Gemini AI Request
+            // Handle Gemini AI Request
             const handleAIAnalyze = async (e) => {
                 e.preventDefault();
                 if (!query.trim()) return;
