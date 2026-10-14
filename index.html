@@ -22,9 +22,9 @@
             const [loading, setLoading] = React.useState(false);
             const [activeTab, setActiveTab] = React.useState('dashboard');
 
-            // API Keys
+            // API Keys (Both Free!)
             const OPENWEATHER_KEY = '1bd24c09f5d8675f2e77a3366efb85f4';
-            const OPENAI_KEY = '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';
+            const GEMINI_KEY = 'AIzaSyYourActualGeminiApiKeyHere'; // <--- Paste your free Gemini AIzaSy... key here
 
             // Fetch Live Weather on Load
             React.useEffect(() => {
@@ -34,7 +34,7 @@
                     .catch(err => console.error('Weather fetch error:', err));
             }, []);
 
-            // Handle OpenAI Request
+            // Handle Free Gemini AI Request
             const handleAIAnalyze = async (e) => {
                 e.preventDefault();
                 if (!query.trim()) return;
@@ -42,38 +42,29 @@
                 setAiResponse('');
 
                 try {
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${OPENAI_KEY}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: 'gpt-4o-mini',
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: 'You are AgriVision AI, an expert agricultural assistant managing drone monitoring, closed-loop crop care, soil analytics, pest symptom detection, and precision irrigation. Provide clear, actionable advice.'
-                                },
-                                {
-                                    role: 'user',
-                                    content: query
-                                }
-                            ]
+                            contents: [{
+                                parts: [{
+                                    text: `You are AgriVision AI, an expert agricultural assistant managing drone monitoring, closed-loop crop care, soil analytics, pest symptom detection, and precision irrigation. Provide clear, actionable advice for: ${query}`
+                                }]
+                            }]
                         })
                     });
 
                     const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(data.error?.message || 'Failed to call OpenAI API');
+                        throw new Error(data.error?.message || 'API request failed');
                     }
 
-                    const text = data.choices?.[0]?.message?.content || 'No response generated.';
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
                     setAiResponse(text);
                 } catch (err) {
-                    console.error('OpenAI Error:', err);
-                    setAiResponse(`Error connecting to OpenAI API: ${err.message}`);
+                    console.error('Gemini error:', err);
+                    setAiResponse(`Error connecting to Gemini AI: ${err.message}`);
                 } finally {
                     setLoading(false);
                 }
@@ -95,7 +86,7 @@
                     {/* Navigation Tabs */}
                     <nav className="bg-white border-b px-6 flex space-x-4">
                         <button onClick={() => setActiveTab('dashboard')} className={`py-3 font-medium border-b-2 ${activeTab === 'dashboard' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Dashboard & Weather</button>
-                        <button onClick={() => setActiveTab('ai')} className={`py-3 font-medium border-b-2 ${activeTab === 'ai' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>OpenAI Crop Advisor</button>
+                        <button onClick={() => setActiveTab('ai')} className={`py-3 font-medium border-b-2 ${activeTab === 'ai' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Gemini AI Crop Advisor</button>
                         <button onClick={() => setActiveTab('drone')} className={`py-3 font-medium border-b-2 ${activeTab === 'drone' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Drone & Heatmap</button>
                     </nav>
 
@@ -141,7 +132,7 @@
 
                         {activeTab === 'ai' && (
                             <div className="bg-white rounded-lg shadow border p-6">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-4">🤖 OpenAI Crop Health & Disease Diagnostician</h3>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-4">🤖 Gemini AI Crop Health & Disease Diagnostician</h3>
                                 <form onSubmit={handleAIAnalyze} className="space-y-4">
                                     <textarea
                                         rows="4"
@@ -155,7 +146,7 @@
                                         disabled={loading}
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2 rounded-lg transition"
                                     >
-                                        {loading ? 'Analyzing with OpenAI...' : 'Generate AI Action Plan'}
+                                        {loading ? 'Analyzing with Gemini AI...' : 'Generate AI Action Plan'}
                                     </button>
                                 </form>
 
