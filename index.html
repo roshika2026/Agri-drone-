@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriVision AI — Smart Farm Dashboard</title>
+    <title>AgriVision AI — Advanced Smart Farm Command Center</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Chart.js for Farm Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide-react@latest"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans">
+<body class="bg-slate-900 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -20,10 +24,13 @@
             const [query, setQuery] = React.useState('');
             const [aiResponse, setAiResponse] = React.useState('');
             const [loading, setLoading] = React.useState(false);
-            const [activeTab, setActiveTab] = React.useState('dashboard');
-            
-            // Selected Model state
+            const [activeTab, setActiveTab] = React.useState('overview');
             const [selectedModel, setSelectedModel] = React.useState('gemini-2.5-flash');
+
+            // Interactive State Features
+            const [autoIrrigation, setAutoIrrigation] = React.useState(true);
+            const [roverStatus, setRoverStatus] = React.useState('AUTONOMOUS_PATROL');
+            const [emergencyStop, setEmergencyStop] = React.useState(false);
 
             // API Keys
             const OPENWEATHER_KEY = '1bd24c09f5d8675f2e77a3366efb85f4';
@@ -37,7 +44,7 @@
                     .catch(err => console.error('Weather fetch error:', err));
             }, []);
 
-            // Handle Gemini AI Request with Model Selector
+            // Handle Gemini AI Request across multiple models
             const handleAIAnalyze = async (e) => {
                 e.preventDefault();
                 if (!query.trim()) return;
@@ -51,7 +58,7 @@
                         body: JSON.stringify({
                             contents: [{
                                 parts: [{
-                                    text: `You are AgriVision AI, an expert agricultural assistant managing drone monitoring, closed-loop crop care, soil analytics, pest symptom detection, and precision irrigation. Provide clear, actionable advice for: ${query}`
+                                    text: `You are AgriVision AI, an advanced agricultural intelligence unit managing autonomous rovers, drone fleet telemetry, soil pH/N-P-K diagnostics, closed-loop crop management, and precision drip irrigation. Answer clearly with bullet points and concrete steps: ${query}`
                                 }]
                             }]
                         })
@@ -74,81 +81,181 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col">
-                    {/* Header */}
-                    <header className="bg-emerald-800 text-white shadow-md py-4 px-6 flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                            <span className="text-2xl">🌱</span>
-                            <h1 className="text-xl font-bold">AgriVision AI Farm Command Center</h1>
+                <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+                    {/* Top Navigation Bar */}
+                    <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                                🛸
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">AgriVision AI</h1>
+                                <p className="text-xs text-slate-400">Autonomous Precision Agriculture & Fleet Digital Twin</p>
+                            </div>
                         </div>
-                        <div className="text-sm bg-emerald-700 px-3 py-1 rounded-full">
-                            Status: <span className="text-emerald-300 font-semibold">Autonomous System Active</span>
+
+                        <div className="flex items-center space-x-3">
+                            {/* Emergency Stop Toggle */}
+                            <button 
+                                onClick={() => {
+                                    setEmergencyStop(!emergencyStop);
+                                    if(!emergencyStop) setRoverStatus('EMERGENCY_HALT');
+                                    else setRoverStatus('AUTONOMOUS_PATROL');
+                                }}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition shadow-lg ${
+                                    emergencyStop 
+                                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse' 
+                                        : 'bg-slate-800 border border-slate-700 hover:border-rose-500/50 text-rose-400'
+                                }`}
+                            >
+                                {emergencyStop ? '🚨 EMERGENCY STOP ACTIVE' : '🛑 E-STOP SHUTDOWN'}
+                            </button>
+
+                            <div className="flex items-center space-x-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-300">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span>Rover 01: <strong className="text-emerald-400">{roverStatus}</strong></span>
+                            </div>
                         </div>
                     </header>
 
-                    {/* Navigation Tabs */}
-                    <nav className="bg-white border-b px-6 flex space-x-4">
-                        <button onClick={() => setActiveTab('dashboard')} className={`py-3 font-medium border-b-2 ${activeTab === 'dashboard' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Dashboard & Weather</button>
-                        <button onClick={() => setActiveTab('ai')} className={`py-3 font-medium border-b-2 ${activeTab === 'ai' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Gemini AI Crop Advisor</button>
-                        <button onClick={() => setActiveTab('drone')} className={`py-3 font-medium border-b-2 ${activeTab === 'drone' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500'}`}>Drone & Heatmap</button>
+                    {/* App Tabs */}
+                    <nav className="border-b border-slate-800 bg-slate-900/40 px-6 flex space-x-6 text-sm font-medium">
+                        <button onClick={() => setActiveTab('overview')} className={`py-3.5 border-b-2 transition ${activeTab === 'overview' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>📊 Command Telemetry</button>
+                        <button onClick={() => setActiveTab('ai')} className={`py-3.5 border-b-2 transition ${activeTab === 'ai' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>🧠 Gemini Intelligence Hub</button>
+                        <button onClick={() => setActiveTab('heatmap')} className={`py-3.5 border-b-2 transition ${activeTab === 'heatmap' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>🗺️ Heatmap & Digital Twin</button>
                     </nav>
 
-                    {/* Main Content */}
-                    <main className="flex-1 p-6 max-w-6xl w-full mx-auto">
-                        {activeTab === 'dashboard' && (
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+                        {activeTab === 'overview' && (
                             <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="bg-white p-4 rounded-lg shadow border">
-                                        <h3 className="text-sm text-slate-500 font-medium">Soil Moisture</h3>
-                                        <p className="text-2xl font-bold text-emerald-600 mt-1">42% (Optimal)</p>
+                                {/* Telemetry Cards Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-emerald-500/30 transition">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil Moisture</span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Optimal</span>
+                                        </div>
+                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">44.2 %</div>
+                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-emerald-400 h-full w-[44%]"></div>
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow border">
-                                        <h3 className="text-sm text-slate-500 font-medium">Soil Temperature</h3>
-                                        <p className="text-2xl font-bold text-amber-600 mt-1">26.4 °C</p>
+
+                                    <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-amber-500/30 transition">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil Temperature</span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Normal</span>
+                                        </div>
+                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">26.8 °C</div>
+                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-amber-400 h-full w-[58%]"></div>
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow border">
-                                        <h3 className="text-sm text-slate-500 font-medium">Battery Level (Rover)</h3>
-                                        <p className="text-2xl font-bold text-blue-600 mt-1">88%</p>
+
+                                    <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-blue-500/30 transition">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rover Battery</span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Charging</span>
+                                        </div>
+                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">91 %</div>
+                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-blue-400 h-full w-[91%]"></div>
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow border">
-                                        <h3 className="text-sm text-slate-500 font-medium">System Health</h3>
-                                        <p className="text-2xl font-bold text-emerald-600 mt-1">99.8%</p>
+
+                                    <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-violet-500/30 transition">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil pH Level</span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">pH 6.5</span>
+                                        </div>
+                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">Slightly Acidic</div>
+                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-violet-400 h-full w-[65%]"></div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Weather Widget */}
-                                <div className="bg-sky-50 border border-sky-200 rounded-lg p-6">
-                                    <h3 className="text-lg font-semibold text-sky-900 mb-2">🌤️ Live Farm Weather (OpenWeather API)</h3>
-                                    {weather && weather.main ? (
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sky-950">
-                                            <div><strong>Location:</strong> {weather.name}</div>
-                                            <div><strong>Temperature:</strong> {weather.main.temp} °C</div>
-                                            <div><strong>Condition:</strong> {weather.weather[0].description}</div>
-                                            <div><strong>Humidity:</strong> {weather.main.humidity}%</div>
+                                {/* Weather & Auto Controls Row */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Weather Widget */}
+                                    <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 to-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-base font-semibold text-slate-200 flex items-center gap-2">
+                                                <span>🌤️</span> Live Micro-Climate Feed (OpenWeather API)
+                                            </h3>
+                                            <span className="text-xs text-slate-500 font-mono">Location: Chennai</span>
                                         </div>
-                                    ) : (
-                                        <p className="text-sky-700">Connecting to OpenWeather API...</p>
-                                    )}
+
+                                        {weather && weather.main ? (
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                                    <div className="text-xs text-slate-400">Temperature</div>
+                                                    <div className="text-xl font-bold text-sky-400 mt-1">{weather.main.temp} °C</div>
+                                                </div>
+                                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                                    <div className="text-xs text-slate-400">Humidity</div>
+                                                    <div className="text-xl font-bold text-teal-400 mt-1">{weather.main.humidity} %</div>
+                                                </div>
+                                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                                    <div className="text-xs text-slate-400">Wind Speed</div>
+                                                    <div className="text-xl font-bold text-emerald-400 mt-1">{weather.wind?.speed} m/s</div>
+                                                </div>
+                                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                                    <div className="text-xs text-slate-400">Conditions</div>
+                                                    <div className="text-sm font-semibold text-indigo-300 mt-1 capitalize">{weather.weather[0].description}</div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-slate-400 text-sm py-6">Connecting to OpenWeather live stream...</div>
+                                        )}
+                                    </div>
+
+                                    {/* Auto-Irrigation Switch */}
+                                    <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+                                        <div>
+                                            <h3 className="text-base font-semibold text-slate-200 mb-1">💧 Closed-Loop Irrigation</h3>
+                                            <p className="text-xs text-slate-400 mb-4">Automatically trigger precision valves when soil moisture drops below 35%.</p>
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                            <span className="text-sm font-medium text-slate-300">Automated Drip Status</span>
+                                            <button 
+                                                onClick={() => setAutoIrrigation(!autoIrrigation)}
+                                                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                                                    autoIrrigation 
+                                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                                        : 'bg-slate-700 text-slate-400'
+                                                }`}
+                                            >
+                                                {autoIrrigation ? 'ENABLED' : 'MANUAL OVERRIDE'}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'ai' && (
-                            <div className="bg-white rounded-lg shadow border p-6">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
-                                    <h3 className="text-lg font-semibold text-slate-800">🤖 Gemini AI Crop Health & Disease Diagnostician</h3>
-                                    
-                                    {/* Model Selector Dropdown */}
-                                    <div className="flex items-center space-x-2">
-                                        <label htmlFor="model-select" className="text-sm font-medium text-slate-600">Select Model:</label>
+                            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl p-6 space-y-6">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                                            <span>🤖</span> Gemini Multi-Model Agricultural Assistant
+                                        </h3>
+                                        <p className="text-xs text-slate-400">Ask about plant disease diagnostics, pest treatment schedules, or autonomous rover pathing.</p>
+                                    </div>
+
+                                    {/* Model Selector */}
+                                    <div className="flex items-center space-x-3 bg-slate-800/80 p-2 rounded-xl border border-slate-700">
+                                        <label htmlFor="model-select" className="text-xs text-slate-400 font-medium">Model Engine:</label>
                                         <select
                                             id="model-select"
                                             value={selectedModel}
                                             onChange={(e) => setSelectedModel(e.target.value)}
-                                            className="border rounded-lg p-2 text-sm bg-slate-50 font-semibold text-emerald-700 border-emerald-300 focus:outline-none"
+                                            className="bg-slate-900 text-emerald-400 font-bold text-xs p-1.5 rounded-lg border border-emerald-500/30 focus:outline-none"
                                         >
-                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fastest)</option>
-                                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Most Capable)</option>
+                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Ultra Fast)</option>
+                                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Reasoning)</option>
                                             <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                                             <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                                         </select>
@@ -158,46 +265,74 @@
                                 <form onSubmit={handleAIAnalyze} className="space-y-4">
                                     <textarea
                                         rows="4"
-                                        className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        placeholder="Describe crop symptoms, pest issues, or soil moisture concerns..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition text-sm"
+                                        placeholder="Enter observations (e.g., Yellow leaves on tomato crops in Zone B, soil pH 6.2)..."
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
                                     />
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2 rounded-lg transition"
-                                    >
-                                        {loading ? `Analyzing with ${selectedModel}...` : 'Generate AI Action Plan'}
-                                    </button>
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                                        >
+                                            {loading ? `Analyzing with ${selectedModel}...` : '🚀 Run Gemini AI Diagnostics'}
+                                        </button>
+                                    </div>
                                 </form>
 
                                 {aiResponse && (
-                                    <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                                        <h4 className="font-semibold text-emerald-900 mb-2">AgriVision AI Recommendations ({selectedModel}):</h4>
-                                        <p className="text-emerald-950 whitespace-pre-wrap">{aiResponse}</p>
+                                    <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-5 space-y-3">
+                                        <div className="flex justify-between items-center text-xs font-semibold text-emerald-400 border-b border-slate-800 pb-2">
+                                            <span>AgriVision AI Prescription Report</span>
+                                            <span className="font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{selectedModel}</span>
+                                        </div>
+                                        <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {activeTab === 'drone' && (
-                            <div className="space-y-6">
-                                <div className="bg-white rounded-lg shadow border p-6">
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-3">🚁 Crop Health Heatmap & Drone Monitoring</h3>
-                                    <div className="grid grid-cols-3 gap-4 text-center">
-                                        <div className="bg-emerald-100 border border-emerald-300 p-4 rounded-lg">
-                                            <div className="font-bold text-emerald-800 text-lg">Zone A (Green)</div>
-                                            <div className="text-emerald-600 text-sm">Healthy Crops (78%)</div>
+                        {activeTab === 'heatmap' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Digital Twin Heatmap */}
+                                <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-base font-semibold text-slate-200">🗺️ Crop Health Digital Twin Heatmap</h3>
+                                        <span className="text-xs text-slate-400">Drone Flight #1080 - Zone A-C</span>
+                                    </div>
+
+                                    {/* Simulated Field Visual Grid */}
+                                    <div className="grid grid-cols-3 gap-3 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                        <div className="bg-emerald-500/20 border border-emerald-500/40 p-6 rounded-xl text-center">
+                                            <div className="text-emerald-400 font-bold text-sm">Zone A (Optimal)</div>
+                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.88</div>
                                         </div>
-                                        <div className="bg-amber-100 border border-amber-300 p-4 rounded-lg">
-                                            <div className="font-bold text-amber-800 text-lg">Zone B (Yellow)</div>
-                                            <div className="text-amber-600 text-sm">Nutrient Stress (15%)</div>
+                                        <div className="bg-amber-500/20 border border-amber-500/40 p-6 rounded-xl text-center">
+                                            <div className="text-amber-400 font-bold text-sm">Zone B (Water Stress)</div>
+                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.52</div>
                                         </div>
-                                        <div className="bg-rose-100 border border-rose-300 p-4 rounded-lg">
-                                            <div className="font-bold text-rose-800 text-lg">Zone C (Red)</div>
-                                            <div className="text-rose-600 text-sm">Immediate Action Required (7%)</div>
+                                        <div className="bg-rose-500/20 border border-rose-500/40 p-6 rounded-xl text-center">
+                                            <div className="text-rose-400 font-bold text-sm">Zone C (Pest Alert)</div>
+                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.31</div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Live Drone Feed Container */}
+                                <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-base font-semibold text-slate-200 mb-2">📹 Aerial Inspection Video</h3>
+                                        <div className="w-full h-48 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10"></div>
+                                            <div className="text-center z-20">
+                                                <span className="text-2xl">🚁</span>
+                                                <p className="text-xs text-emerald-400 mt-2 font-mono">LIVE FEED STREAM ACTIVE</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-400 bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                                        GPS Location: 13.0827° N, 80.2707° E
                                     </div>
                                 </div>
                             </div>
