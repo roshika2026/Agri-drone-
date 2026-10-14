@@ -1,56 +1,170 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriVision AI — Autonomous Farm Command Center</title>
+    <title>AgriVision AI — Enterprise Smart Agriculture Command Center</title>
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React, React-DOM & Babel CDNs -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            950: '#020617',
+                            900: '#0b1329',
+                            800: '#111e38',
+                            700: '#1e293b',
+                            emerald: '#10b981',
+                            cyan: '#06b6d4',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite',
+                        'radar-sweep': 'radarSweep 4s linear infinite',
+                        'scanline': 'scanline 8s linear infinite'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 0.8, filter: 'drop-shadow(0 0 12px rgba(16,185,129,0.6))' },
+                            '50%': { opacity: 0.4, filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.2))' }
+                        },
+                        radarSweep: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(1000%)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React, ReactDOM & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        /* Custom scrollbar for dark tech theme */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617;
+        }
+
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Glassmorphic Cyber Panels */
+        .cyber-glass {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.95) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(30, 41, 59, 0.7);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .cyber-glass-active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Custom Cyber Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
             background: #020617;
         }
         ::-webkit-scrollbar-thumb {
             background: #1e293b;
-            border-radius: 4px;
+            border-radius: 3px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
+            background: #10b981;
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen">
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-black">
     <div id="root"></div>
 
     <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
         function App() {
-            // State Management
-            const [weather, setWeather] = React.useState(null);
-            const [weatherLoading, setWeatherLoading] = React.useState(true);
-            const [query, setQuery] = React.useState('');
-            const [aiResponse, setAiResponse] = React.useState('');
-            const [loading, setLoading] = React.useState(false);
-            const [activeTab, setActiveTab] = React.useState('overview');
+            // Navigation State
+            const [activeTab, setActiveTab] = useState('telemetry');
 
-            // Interactive Controls
-            const [autoIrrigation, setAutoIrrigation] = React.useState(true);
-            const [roverStatus, setRoverStatus] = React.useState('AUTONOMOUS_PATROL');
-            const [emergencyStop, setEmergencyStop] = React.useState(false);
+            // Clock & Time State
+            const [time, setTime] = useState(new Date());
 
-            // OpenWeather API Key
+            // Emergency Stop & Alert States
+            const [emergencyHalt, setEmergencyHalt] = useState(false);
+            const [showEStopModal, setShowEStopModal] = useState(false);
+
+            // Weather State
+            const [weather, setWeather] = useState(null);
+            const [weatherLoading, setWeatherLoading] = useState(true);
+
+            // Actuator Controls State
+            const [actuators, setActuators] = useState({
+                irrigationValve01: true,
+                irrigationValve02: true,
+                irrigationValve03: false,
+                thermalFogger: false,
+                solarTrackers: true,
+                ozoneGenerators: true
+            });
+
+            // AI Search Advisor State
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchLoading, setSearchLoading] = useState(false);
+            const [searchResult, setSearchResult] = useState(null);
+
+            // Selected Map Zone State
+            const [selectedZone, setSelectedZone] = useState('Zone-A');
+
+            // Automation Rules State
+            const [rules, setRules] = useState([
+                { id: 1, name: 'Moisture Auto-Irrigate', condition: 'Soil Moisture < 35%', action: 'Open Valve 01 & 02 for 15 mins', active: true },
+                { id: 2, name: 'Heat Stress Prevention', condition: 'Air Temp > 38°C', action: 'Activate Thermal Fogger Array', active: true },
+                { id: 3, name: 'Night Frost Shield', condition: 'Soil Temp < 10°C', action: 'Enable Under-bed Thermal Mats', active: false }
+            ]);
+
+            // OpenWeather Fetch
             const OPENWEATHER_KEY = '1bd24c09f5d8675f2e77a3366efb85f4';
 
-            // Fetch Weather on Mount
-            React.useEffect(() => {
+            useEffect(() => {
+                // Initialize Lucide Icons
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            useEffect(() => {
                 setWeatherLoading(true);
                 fetch(`https://api.openweathermap.org/data/2.5/weather?q=Chennai&units=metric&appid=${OPENWEATHER_KEY}`)
                     .then(res => res.json())
@@ -64,341 +178,820 @@
                     });
             }, []);
 
-            // Emergency Stop Toggle Handler
-            const toggleEmergencyStop = () => {
-                const nextState = !emergencyStop;
-                setEmergencyStop(nextState);
-                if (nextState) {
-                    setRoverStatus('EMERGENCY_HALT');
-                } else {
-                    setRoverStatus('AUTONOMOUS_PATROL');
+            // E-Stop Handler
+            const confirmEmergencyStop = () => {
+                setEmergencyHalt(true);
+                setShowEStopModal(false);
+                setActuators({
+                    irrigationValve01: false,
+                    irrigationValve02: false,
+                    irrigationValve03: false,
+                    thermalFogger: false,
+                    solarTrackers: false,
+                    ozoneGenerators: false
+                });
+            };
+
+            const resetEmergencyStop = () => {
+                setEmergencyHalt(false);
+            };
+
+            // Keyless Wikipedia Search Handler
+            const handleSearchSubmit = async (e) => {
+                e.preventDefault();
+                if (!searchQuery.trim()) return;
+                setSearchLoading(true);
+                setSearchResult(null);
+
+                try {
+                    // Step 1: Search Wikipedia API
+                    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery + " agriculture farming")}&format=json&origin=*`;
+                    const res = await fetch(searchUrl);
+                    const data = await res.json();
+
+                    if (data.query?.search?.length > 0) {
+                        const topMatch = data.query.search[0];
+                        const title = topMatch.title;
+
+                        // Step 2: Get Summary REST API
+                        const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+                        if (summaryRes.ok) {
+                            const summaryData = await summaryRes.json();
+                            setSearchResult({
+                                title: summaryData.title,
+                                description: summaryData.description || 'Agricultural Science Analysis',
+                                extract: summaryData.extract,
+                                thumbnail: summaryData.thumbnail?.source || null,
+                                pageUrl: summaryData.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`
+                            });
+                        }
+                    } else {
+                        setSearchResult({
+                            title: 'No Direct Match Found',
+                            extract: `No specific telemetry entry found for "${searchQuery}". Try searching topics like "Drip Irrigation", "Photosynthesis", "Nitrogen Cycle", or "Drone Multispectral Imaging".`,
+                            pageUrl: `https://duckduckgo.com/?q=${encodeURIComponent(searchQuery + " agriculture")}`
+                        });
+                    }
+                } catch (error) {
+                    console.error('Search failed:', error);
+                    setSearchResult({
+                        title: 'Knowledge Base Fetch Notice',
+                        extract: `Query processed with fallback telemetry. Review domain parameters or launch external DuckDuckGo/Google search handlers below.`,
+                        pageUrl: `https://duckduckgo.com/?q=${encodeURIComponent(searchQuery + " agriculture")}`
+                    });
+                } finally {
+                    setSearchLoading(false);
                 }
             };
 
-            // Keyless Search via Wikipedia Search + Summary APIs (CORS Enabled with origin=*)
-            const handleAIAnalyze = async (e) => {
-                e.preventDefault();
-                if (!query.trim()) return;
-                setLoading(true);
-                setAiResponse('');
-
-                let resultSummary = null;
-                let resultTitle = "";
-
-                try {
-                    // Step 1: Query Wikipedia Search API for top matching article
-                    const searchRes = await fetch(
-                        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + " agriculture")}&format=json&origin=*`
-                    );
-                    const searchData = await searchRes.json();
-
-                    if (searchData.query?.search?.length > 0) {
-                        const topResult = searchData.query.search[0];
-                        resultTitle = topResult.title;
-
-                        // Step 2: Fetch detailed summary extract for top result
-                        const summaryRes = await fetch(
-                            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(resultTitle)}`
-                        );
-                        
-                        if (summaryRes.ok) {
-                            const summaryData = await summaryRes.json();
-                            resultSummary = summaryData.extract;
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Wikipedia API search failed:", err);
-                }
-
-                // Format Briefing Response
-                if (resultSummary) {
-                    setAiResponse(
-                        `🌐 **Live Web Briefing: ${resultTitle}**\n\n` +
-                        `• ${resultSummary}\n\n` +
-                        `*Source: Public Web Knowledge Graph (Zero-API Key Telemetry)*`
-                    );
-                } else {
-                    setAiResponse(
-                        `🌾 **AgriVision Search Advisory**:\n\n` +
-                        `• No direct web summary retrieved for "${query}". Try refining your agricultural topic (e.g., "Photosynthesis", "Nitrogen Cycle", or "Drip Irrigation").`
-                    );
-                }
-
-                setLoading(false);
+            // Toggle Actuator Handler
+            const toggleActuator = (key) => {
+                if (emergencyHalt) return;
+                setActuators(prev => ({ ...prev, [key]: !prev[key] }));
             };
 
             return (
-                <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-                    {/* Header Command Bar */}
-                    <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
-                                🛸
+                <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
+                    
+                    {/* E-STOP EMERGENCY OVERLAY WARNING */}
+                    {emergencyHalt && (
+                        <div className="bg-rose-950/90 border-b border-rose-500/50 px-6 py-3 flex items-center justify-between text-xs font-mono-tech sticky top-0 z-50 animate-pulse">
+                            <div className="flex items-center space-x-3 text-rose-200">
+                                <span className="p-1 bg-rose-600 text-white font-bold rounded">EMERGENCY HALT</span>
+                                <span className="font-semibold">CRITICAL SYSTEM SHUTDOWN ACTIVE — ALL ACTUATORS LOCKED IN SAFE POSITION</span>
+                            </div>
+                            <button 
+                                onClick={resetEmergencyStop}
+                                className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-xs transition border border-rose-400"
+                            >
+                                OVERRIDE & RESET SYSTEM
+                            </button>
+                        </div>
+                    )}
+
+                    {/* TOP COMMAND BAR HEADER */}
+                    <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center space-x-4">
+                            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-950/50">
+                                <i data-lucide="cpu" className="w-5 h-5"></i>
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-200 bg-clip-text text-transparent">
-                                    AgriVision AI
-                                </h1>
-                                <p className="text-xs text-slate-400">Autonomous Precision Farming & Live Web Intelligence</p>
+                                <div className="flex items-center space-x-2">
+                                    <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                                        AGRIVISION AI
+                                    </h1>
+                                    <span className="text-[10px] font-mono-tech font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        v4.8 PRO
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 font-mono-tech">Autonomous Agriculture Command Hub</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-3">
-                            {/* Emergency E-Stop Button */}
-                            <button 
-                                onClick={toggleEmergencyStop}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition shadow-lg ${
-                                    emergencyStop 
-                                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse shadow-rose-900/50' 
-                                        : 'bg-slate-900 border border-rose-500/40 hover:border-rose-500 hover:bg-rose-950/30 text-rose-400'
+                        {/* System Status Indicators & Clocks */}
+                        <div className="flex flex-wrap items-center space-x-6 text-xs font-mono-tech">
+                            <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                                <span className={`w-2 h-2 rounded-full ${emergencyHalt ? 'bg-rose-500 animate-ping' : 'bg-emerald-400 animate-pulse'}`}></span>
+                                <span className="text-slate-400">STATUS:</span>
+                                <span className={emergencyHalt ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
+                                    {emergencyHalt ? 'HALTED' : 'NOMINAL'}
+                                </span>
+                            </div>
+
+                            <div className="hidden lg:flex items-center space-x-3 text-slate-400">
+                                <div><span className="text-slate-500">UTC:</span> {time.toISOString().substring(11, 19)}</div>
+                                <div className="text-emerald-400"><span className="text-slate-500">LOCAL:</span> {time.toLocaleTimeString()}</div>
+                            </div>
+
+                            {/* Emergency E-Stop Trigger Button */}
+                            <button
+                                onClick={() => setShowEStopModal(true)}
+                                className={`px-4 py-2 rounded-xl font-bold tracking-wider transition text-xs flex items-center space-x-2 border shadow-lg ${
+                                    emergencyHalt 
+                                        ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-950/50' 
+                                        : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border-rose-500/40 hover:border-rose-500 shadow-slate-950'
                                 }`}
                             >
-                                {emergencyStop ? '🚨 EMERGENCY HALT ACTIVE' : '🛑 E-STOP SHUTDOWN'}
+                                <i data-lucide="octagon-alert" className="w-4 h-4"></i>
+                                <span>{emergencyHalt ? 'SYSTEM HALTED' : 'E-STOP SHUTDOWN'}</span>
                             </button>
-
-                            {/* Rover Telemetry Status Indicator */}
-                            <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-300">
-                                <span className={`w-2 h-2 rounded-full ${emergencyStop ? 'bg-rose-500' : 'bg-emerald-400 animate-ping'}`}></span>
-                                <span>Rover 01: <strong className={emergencyStop ? 'text-rose-400' : 'text-emerald-400'}>{roverStatus}</strong></span>
-                            </div>
                         </div>
                     </header>
 
-                    {/* Navigation Tabs */}
-                    <nav className="border-b border-slate-800 bg-slate-900/40 px-6 flex space-x-6 text-sm font-medium">
-                        <button 
-                            onClick={() => setActiveTab('overview')} 
-                            className={`py-3.5 border-b-2 transition flex items-center gap-2 ${activeTab === 'overview' ? 'border-emerald-400 text-emerald-400 font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    {/* MAIN SUB-NAVIGATION TABS */}
+                    <nav className="border-b border-slate-800/80 bg-slate-900/40 px-6 flex space-x-1 sm:space-x-4 text-xs font-medium overflow-x-auto">
+                        <button
+                            onClick={() => setActiveTab('telemetry')}
+                            className={`py-3 px-4 border-b-2 transition flex items-center space-x-2 font-mono-tech whitespace-nowrap ${
+                                activeTab === 'telemetry' 
+                                    ? 'border-emerald-400 text-emerald-400 font-bold bg-emerald-500/5' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                            }`}
                         >
-                            📊 Command Telemetry
+                            <i data-lucide="activity" className="w-4 h-4"></i>
+                            <span>TELEMETRY & COMMAND</span>
                         </button>
-                        <button 
-                            onClick={() => setActiveTab('ai')} 
-                            className={`py-3.5 border-b-2 transition flex items-center gap-2 ${activeTab === 'ai' ? 'border-emerald-400 text-emerald-400 font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+
+                        <button
+                            onClick={() => setActiveTab('search')}
+                            className={`py-3 px-4 border-b-2 transition flex items-center space-x-2 font-mono-tech whitespace-nowrap ${
+                                activeTab === 'search' 
+                                    ? 'border-emerald-400 text-emerald-400 font-bold bg-emerald-500/5' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                            }`}
                         >
-                            🔍 Keyless Web Search Advisor
+                            <i data-lucide="search-code" className="w-4 h-4"></i>
+                            <span>AI GROUNDING BRIEFING</span>
                         </button>
-                        <button 
-                            onClick={() => setActiveTab('heatmap')} 
-                            className={`py-3.5 border-b-2 transition flex items-center gap-2 ${activeTab === 'heatmap' ? 'border-emerald-400 text-emerald-400 font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+
+                        <button
+                            onClick={() => setActiveTab('twin')}
+                            className={`py-3 px-4 border-b-2 transition flex items-center space-x-2 font-mono-tech whitespace-nowrap ${
+                                activeTab === 'twin' 
+                                    ? 'border-emerald-400 text-emerald-400 font-bold bg-emerald-500/5' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                            }`}
                         >
-                            🗺️ Heatmap & Digital Twin
+                            <i data-lucide="map-pin" className="w-4 h-4"></i>
+                            <span>GEOSPATIAL TWIN & DRONE HUD</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('scanner')}
+                            className={`py-3 px-4 border-b-2 transition flex items-center space-x-2 font-mono-tech whitespace-nowrap ${
+                                activeTab === 'scanner' 
+                                    ? 'border-emerald-400 text-emerald-400 font-bold bg-emerald-500/5' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            <i data-lucide="bug" className="w-4 h-4"></i>
+                            <span>PATHOLOGY SCANNER</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('rules')}
+                            className={`py-3 px-4 border-b-2 transition flex items-center space-x-2 font-mono-tech whitespace-nowrap ${
+                                activeTab === 'rules' 
+                                    ? 'border-emerald-400 text-emerald-400 font-bold bg-emerald-500/5' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            <i data-lucide="sliders" className="w-4 h-4"></i>
+                            <span>AUTOMATION ENGINE</span>
                         </button>
                     </nav>
 
-                    {/* Main Content Body */}
-                    <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-                        
-                        {/* TAB 1: OVERVIEW & TELEMETRY */}
-                        {activeTab === 'overview' && (
+                    {/* VIEWPORT BODY CONTAINER */}
+                    <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto space-y-6">
+
+                        {/* TAB 1: TELEMETRY & COMMAND */}
+                        {activeTab === 'telemetry' && (
                             <div className="space-y-6">
-                                {/* Interactive Sensor Telemetry Cards */}
+                                {/* METRICS GRID */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-emerald-500/30 transition">
+                                    <div className="cyber-glass p-5 rounded-2xl relative overflow-hidden group hover:border-emerald-500/50 transition">
                                         <div className="flex justify-between items-start">
-                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil Moisture</span>
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Optimal</span>
+                                            <span className="text-xs font-mono-tech text-slate-400 uppercase tracking-wider">Moisture Volumetric</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-mono-tech rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                                44.2% OPTIMAL
+                                            </span>
                                         </div>
-                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">44.2 %</div>
-                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                                            <div className="bg-emerald-400 h-full w-[44%]"></div>
+                                        <div className="text-3xl font-black text-slate-100 font-mono-tech mt-2">44.2 %</div>
+                                        <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-emerald-400 h-full w-[44.2%] transition-all duration-500"></div>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-mono-tech mt-2">
+                                            <span>Target: 40-50%</span>
+                                            <span>Sensor 01A</span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-amber-500/30 transition">
+                                    <div className="cyber-glass p-5 rounded-2xl relative overflow-hidden group hover:border-cyan-500/50 transition">
                                         <div className="flex justify-between items-start">
-                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil Temperature</span>
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Normal</span>
+                                            <span className="text-xs font-mono-tech text-slate-400 uppercase tracking-wider">Soil Temp Matrix</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-mono-tech rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                                                26.8°C NORMAL
+                                            </span>
                                         </div>
-                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">26.8 °C</div>
-                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                                            <div className="bg-amber-400 h-full w-[58%]"></div>
+                                        <div className="text-3xl font-black text-slate-100 font-mono-tech mt-2">26.8 °C</div>
+                                        <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-cyan-400 h-full w-[58%] transition-all duration-500"></div>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-mono-tech mt-2">
+                                            <span>Threshold: &lt;35°C</span>
+                                            <span>Depth 15cm</span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-blue-500/30 transition">
+                                    <div className="cyber-glass p-5 rounded-2xl relative overflow-hidden group hover:border-amber-500/50 transition">
                                         <div className="flex justify-between items-start">
-                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rover Battery</span>
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Charging</span>
+                                            <span className="text-xs font-mono-tech text-slate-400 uppercase tracking-wider">Rover Battery Bank</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-mono-tech rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                                SOLAR CHARGING
+                                            </span>
                                         </div>
-                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">91 %</div>
-                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                                            <div className="bg-blue-400 h-full w-[91%]"></div>
+                                        <div className="text-3xl font-black text-slate-100 font-mono-tech mt-2">91.4 %</div>
+                                        <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-amber-400 h-full w-[91.4%] transition-all duration-500"></div>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-mono-tech mt-2">
+                                            <span>Est runtime: 14.2h</span>
+                                            <span>Rover-01</span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-violet-500/30 transition">
+                                    <div className="cyber-glass p-5 rounded-2xl relative overflow-hidden group hover:border-purple-500/50 transition">
                                         <div className="flex justify-between items-start">
-                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Soil pH Level</span>
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">pH 6.5</span>
+                                            <span className="text-xs font-mono-tech text-slate-400 uppercase tracking-wider">NPK / Soil pH</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-mono-tech rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                                                pH 6.5 STABLE
+                                            </span>
                                         </div>
-                                        <div className="text-3xl font-extrabold text-slate-100 mt-2">Balanced</div>
-                                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                                            <div className="bg-violet-400 h-full w-[65%]"></div>
+                                        <div className="text-3xl font-black text-slate-100 font-mono-tech mt-2">6.5 pH</div>
+                                        <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-purple-400 h-full w-[65%] transition-all duration-500"></div>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-mono-tech mt-2">
+                                            <span>Nitrogen: High</span>
+                                            <span>Zone-A Grid</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Weather Stream & Automated Control Row */}
+                                {/* CHART & LIVE MICROCLIMATE FEED ROW */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-base font-semibold text-slate-200 flex items-center gap-2">
-                                                <span>🌤️</span> Live Micro-Climate Feed (Chennai, India)
-                                            </h3>
-                                            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">OpenWeather Live</span>
+                                    {/* Real-time Telemetry Line Chart */}
+                                    <div className="lg:col-span-2 cyber-glass p-6 rounded-2xl space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
+                                                    <i data-lucide="line-chart" className="w-4 h-4 text-emerald-400"></i>
+                                                    <span>24-Hour Telemetry Dynamics</span>
+                                                </h3>
+                                                <p className="text-xs text-slate-400 font-mono-tech">Soil Moisture (%) vs Soil Temperature (°C)</p>
+                                            </div>
+                                            <span className="text-[10px] font-mono-tech bg-slate-900 border border-slate-800 text-emerald-400 px-2.5 py-1 rounded-lg">
+                                                LIVE DYNAMIC STREAM
+                                            </span>
                                         </div>
 
-                                        {!weatherLoading && weather && weather.main ? (
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                                    <div className="text-xs text-slate-400">Temperature</div>
-                                                    <div className="text-xl font-bold text-sky-400 mt-1">{weather.main.temp} °C</div>
-                                                </div>
-                                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                                    <div className="text-xs text-slate-400">Humidity</div>
-                                                    <div className="text-xl font-bold text-teal-400 mt-1">{weather.main.humidity} %</div>
-                                                </div>
-                                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                                    <div className="text-xs text-slate-400">Wind Speed</div>
-                                                    <div className="text-xl font-bold text-emerald-400 mt-1">{weather.wind?.speed} m/s</div>
-                                                </div>
-                                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                                    <div className="text-xs text-slate-400">Conditions</div>
-                                                    <div className="text-sm font-semibold text-indigo-300 mt-1 capitalize">{weather.weather[0].description}</div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="text-slate-400 text-sm py-6 text-center animate-pulse">
-                                                Connecting to OpenWeather live telemetry stream...
-                                            </div>
-                                        )}
+                                        <TelemetryChart />
                                     </div>
 
-                                    <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="text-base font-semibold text-slate-200 mb-1">💧 Drip Irrigation Loop</h3>
-                                            <p className="text-xs text-slate-400 mb-4">Automatically triggers targeted zone valves when moisture drops below 35%.</p>
+                                    {/* Weather API Feed & Actuator Toggle Panel */}
+                                    <div className="space-y-6">
+                                        {/* Micro-Climate Weather Integration */}
+                                        <div className="cyber-glass p-6 rounded-2xl space-y-4">
+                                            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                                                <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                                                    <i data-lucide="cloud-sun" className="w-4 h-4 text-cyan-400"></i>
+                                                    <span>Live Micro-Climate (Chennai)</span>
+                                                </h3>
+                                                <span className="text-[10px] font-mono-tech text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">OpenWeather</span>
+                                            </div>
+
+                                            {!weatherLoading && weather && weather.main ? (
+                                                <div className="grid grid-cols-2 gap-3 text-xs font-mono-tech">
+                                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                                                        <div className="text-slate-400">Air Temp</div>
+                                                        <div className="text-lg font-bold text-sky-400 mt-1">{weather.main.temp} °C</div>
+                                                    </div>
+                                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                                                        <div className="text-slate-400">Humidity</div>
+                                                        <div className="text-lg font-bold text-teal-400 mt-1">{weather.main.humidity} %</div>
+                                                    </div>
+                                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                                                        <div className="text-slate-400">Wind Velocity</div>
+                                                        <div className="text-lg font-bold text-emerald-400 mt-1">{weather.wind?.speed} m/s</div>
+                                                    </div>
+                                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                                                        <div className="text-slate-400">Condition</div>
+                                                        <div className="text-xs font-semibold text-indigo-300 mt-1 capitalize truncate">{weather.weather[0]?.description}</div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-400 py-6 text-center font-mono-tech animate-pulse">
+                                                    Establishing telemetry connection to satellite feed...
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                            <span className="text-sm font-medium text-slate-300">Automated Drip Status</span>
-                                            <button 
-                                                onClick={() => setAutoIrrigation(!autoIrrigation)}
-                                                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
-                                                    autoIrrigation 
-                                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                                                        : 'bg-slate-800 text-slate-400 border border-slate-700'
-                                                }`}
-                                            >
-                                                {autoIrrigation ? 'ENABLED' : 'MANUAL OVERRIDE'}
-                                            </button>
+
+                                        {/* Closed-Loop Actuator Switches */}
+                                        <div className="cyber-glass p-6 rounded-2xl space-y-4">
+                                            <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2 border-b border-slate-800/80 pb-3">
+                                                <i data-lucide="toggle-left" className="w-4 h-4 text-emerald-400"></i>
+                                                <span>Actuator & Solenoid Control Array</span>
+                                            </h3>
+
+                                            <div className="space-y-2.5 text-xs font-mono-tech">
+                                                <div className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl border border-slate-800">
+                                                    <span className="text-slate-300">Drip Valve Zone 01</span>
+                                                    <button 
+                                                        onClick={() => toggleActuator('irrigationValve01')}
+                                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition border ${
+                                                            actuators.irrigationValve01 
+                                                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                                                                : 'bg-slate-800 text-slate-500 border-slate-700'
+                                                        }`}
+                                                    >
+                                                        {actuators.irrigationValve01 ? 'OPEN / ACTIVE' : 'CLOSED'}
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl border border-slate-800">
+                                                    <span className="text-slate-300">Drip Valve Zone 02</span>
+                                                    <button 
+                                                        onClick={() => toggleActuator('irrigationValve02')}
+                                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition border ${
+                                                            actuators.irrigationValve02 
+                                                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                                                                : 'bg-slate-800 text-slate-500 border-slate-700'
+                                                        }`}
+                                                    >
+                                                        {actuators.irrigationValve02 ? 'OPEN / ACTIVE' : 'CLOSED'}
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl border border-slate-800">
+                                                    <span className="text-slate-300">Thermal Fogger Array</span>
+                                                    <button 
+                                                        onClick={() => toggleActuator('thermalFogger')}
+                                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition border ${
+                                                            actuators.thermalFogger 
+                                                                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40' 
+                                                                : 'bg-slate-800 text-slate-500 border-slate-700'
+                                                        }`}
+                                                    >
+                                                        {actuators.thermalFogger ? 'FOGGING ACTIVE' : 'STANDBY'}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* TAB 2: KEYLESS SEARCH ADVISOR */}
-                        {activeTab === 'ai' && (
-                            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl p-6 space-y-6">
-                                <div className="border-b border-slate-800 pb-4">
-                                    <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-                                        <span>🔍</span> Keyless Web Search & Agricultural Advisor
+                        {/* TAB 2: AI GROUNDING BRIEFING */}
+                        {activeTab === 'search' && (
+                            <div className="cyber-glass p-6 rounded-2xl space-y-6">
+                                <div className="border-b border-slate-800/80 pb-4">
+                                    <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                        <i data-lucide="brain-circuit" className="w-5 h-5 text-emerald-400"></i>
+                                        <span>Keyless Agricultural Knowledge Briefing Engine</span>
                                     </h3>
-                                    <p className="text-xs text-slate-400">
-                                        Searches live public knowledge endpoints in the background and compiles instant summaries—no API key required.
+                                    <p className="text-xs text-slate-400 font-mono-tech mt-1">
+                                        Queries CORS-enabled Wikipedia REST endpoints directly in real time without requiring external API keys.
                                     </p>
                                 </div>
 
-                                <form onSubmit={handleAIAnalyze} className="space-y-4">
-                                    <textarea
-                                        rows="4"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none transition text-sm"
-                                        placeholder="Type an agricultural query (e.g., Photosynthesis, Tomato Blight, Nitrogen Fertilizer)..."
-                                        value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
-                                    />
+                                <form onSubmit={handleSearchSubmit} className="space-y-4">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Enter agricultural topic (e.g., Nitrogen Fixation, Drip Irrigation, Crop Rotation, Wheat Rust)..."
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 pl-11 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition font-mono-tech"
+                                        />
+                                        <i data-lucide="search" className="w-4 h-4 text-slate-500 absolute left-4 top-4"></i>
+                                    </div>
 
-                                    {/* Action Button Row */}
                                     <div className="flex flex-wrap items-center justify-end gap-3">
-                                        {/* DuckDuckGo External Backup Search Button */}
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (!query.trim()) return;
-                                                window.open(`https://duckduckgo.com/?q=${encodeURIComponent(query + " agriculture")}`, '_blank');
+                                                if (!searchQuery.trim()) return;
+                                                window.open(`https://duckduckgo.com/?q=${encodeURIComponent(searchQuery + " agriculture")}`, '_blank');
                                             }}
-                                            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium text-sm px-4 py-2.5 rounded-xl transition flex items-center gap-2"
+                                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-mono-tech text-xs rounded-xl transition flex items-center space-x-2"
                                         >
-                                            <span>🦆</span> Search DuckDuckGo (New Tab)
+                                            <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
+                                            <span>DuckDuckGo (New Tab)</span>
                                         </button>
 
-                                        {/* Main Web Search & Briefing Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!searchQuery.trim()) return;
+                                                window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery + " agriculture")}`, '_blank');
+                                            }}
+                                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-mono-tech text-xs rounded-xl transition flex items-center space-x-2"
+                                        >
+                                            <i data-lucide="search" className="w-3.5 h-3.5"></i>
+                                            <span>Google Search</span>
+                                        </button>
+
                                         <button
                                             type="submit"
-                                            disabled={loading}
-                                            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-lg shadow-emerald-950/50 disabled:opacity-50"
+                                            disabled={searchLoading}
+                                            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-950/50 disabled:opacity-50 flex items-center space-x-2 font-mono-tech"
                                         >
-                                            {loading ? 'Searching Web Telemetry...' : '🚀 Search & Generate Brief'}
+                                            {searchLoading ? (
+                                                <span>SEARCHING TELEMETRY...</span>
+                                            ) : (
+                                                <>
+                                                    <i data-lucide="sparkles" className="w-4 h-4"></i>
+                                                    <span>GENERATE IN-APP BRIEF</span>
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </form>
 
-                                {aiResponse && (
-                                    <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-5 space-y-3">
-                                        <div className="flex justify-between items-center text-xs font-semibold text-emerald-400 border-b border-slate-800 pb-2">
-                                            <span>AgriVision Intelligence Report</span>
-                                            <span className="font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Zero-API Mode</span>
+                                {searchResult && (
+                                    <div className="bg-slate-950/90 border border-emerald-500/30 rounded-2xl p-6 space-y-4">
+                                        <div className="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 gap-2">
+                                            <div>
+                                                <h4 className="text-base font-bold text-emerald-400 font-mono-tech">
+                                                    {searchResult.title}
+                                                </h4>
+                                                <p className="text-xs text-slate-400 font-mono-tech">{searchResult.description}</p>
+                                            </div>
+                                            <span className="text-[10px] font-mono-tech bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+                                                Public Knowledge Base
+                                            </span>
                                         </div>
-                                        <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
+
+                                        <p className="text-sm text-slate-200 leading-relaxed font-sans">
+                                            {searchResult.extract}
+                                        </p>
+
+                                        <div className="pt-2 flex justify-between items-center text-xs font-mono-tech text-slate-400 border-t border-slate-800/80">
+                                            <span>Citation: Wikipedia Open REST API</span>
+                                            <a 
+                                                href={searchResult.pageUrl} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="text-emerald-400 hover:underline flex items-center space-x-1"
+                                            >
+                                                <span>Read Complete Article</span>
+                                                <i data-lucide="arrow-up-right" className="w-3.5 h-3.5"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* TAB 3: HEATMAP & DIGITAL TWIN */}
-                        {activeTab === 'heatmap' && (
+                        {/* TAB 3: GEOSPATIAL TWIN & DRONE HUD */}
+                        {activeTab === 'twin' && (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                                {/* Interactive Map Twin */}
+                                <div className="lg:col-span-2 cyber-glass p-6 rounded-2xl space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <h3 className="text-base font-semibold text-slate-200">🗺️ Crop Health Digital Twin Heatmap</h3>
-                                        <span className="text-xs text-slate-400">Drone Patrol #1080</span>
+                                        <div>
+                                            <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
+                                                <i data-lucide="map" className="w-4 h-4 text-emerald-400"></i>
+                                                <span>Interactive Farm Zone Geospatial Twin</span>
+                                            </h3>
+                                            <p className="text-xs text-slate-400 font-mono-tech">Click field zones to inspect live NDVI vegetation health index</p>
+                                        </div>
+                                        <span className="text-[10px] font-mono-tech text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
+                                            SATELLITE OVERLAY
+                                        </span>
                                     </div>
 
-                                    {/* Zone Health Indicators */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                        <div className="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-xl text-center">
-                                            <div className="text-emerald-400 font-bold text-sm">Zone A (Optimal)</div>
-                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.88</div>
+                                    {/* SVG Map Representation */}
+                                    <div className="relative w-full h-72 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center">
+                                        <svg className="w-full h-full p-4" viewBox="0 0 400 200">
+                                            <defs>
+                                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e293b" strokeWidth="0.5"/>
+                                                </pattern>
+                                            </defs>
+                                            <rect width="100%" height="100%" fill="url(#grid)" />
+
+                                            {/* Zone A Polygon */}
+                                            <g onClick={() => setSelectedZone('Zone-A')} className="cursor-pointer group">
+                                                <polygon points="20,20 180,20 160,90 30,90" 
+                                                    className={`transition ${selectedZone === 'Zone-A' ? 'fill-emerald-500/30 stroke-emerald-400' : 'fill-emerald-950/40 stroke-emerald-600/50'} stroke-2 group-hover:fill-emerald-500/20`}
+                                                />
+                                                <text x="70" y="60" fill="#10b981" fontSize="12" fontFamily="JetBrains Mono" fontWeight="bold">ZONE A (0.88 NDVI)</text>
+                                            </g>
+
+                                            {/* Zone B Polygon */}
+                                            <g onClick={() => setSelectedZone('Zone-B')} className="cursor-pointer group">
+                                                <polygon points="190,20 380,20 370,90 170,90" 
+                                                    className={`transition ${selectedZone === 'Zone-B' ? 'fill-amber-500/30 stroke-amber-400' : 'fill-amber-950/40 stroke-amber-600/50'} stroke-2 group-hover:fill-amber-500/20`}
+                                                />
+                                                <text x="240" y="60" fill="#f59e0b" fontSize="12" fontFamily="JetBrains Mono" fontWeight="bold">ZONE B (0.52 NDVI)</text>
+                                            </g>
+
+                                            {/* Zone C Polygon */}
+                                            <g onClick={() => setSelectedZone('Zone-C')} className="cursor-pointer group">
+                                                <polygon points="30,105 370,105 360,180 20,180" 
+                                                    className={`transition ${selectedZone === 'Zone-C' ? 'fill-rose-500/30 stroke-rose-400' : 'fill-rose-950/40 stroke-rose-600/50'} stroke-2 group-hover:fill-rose-500/20`}
+                                                />
+                                                <text x="160" y="150" fill="#f43f5e" fontSize="12" fontFamily="JetBrains Mono" fontWeight="bold">ZONE C (0.31 PEST ALERT)</text>
+                                            </g>
+                                        </svg>
+                                    </div>
+
+                                    {/* Selected Zone Breakdown */}
+                                    <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-xs font-mono-tech flex justify-between items-center">
+                                        <div>
+                                            <span className="text-slate-400">SELECTED TARGET: </span>
+                                            <span className="text-emerald-400 font-bold">{selectedZone}</span>
                                         </div>
-                                        <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl text-center">
-                                            <div className="text-amber-400 font-bold text-sm">Zone B (Water Stress)</div>
-                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.52</div>
-                                        </div>
-                                        <div className="bg-rose-500/10 border border-rose-500/30 p-6 rounded-xl text-center">
-                                            <div className="text-rose-400 font-bold text-sm">Zone C (Pest Alert)</div>
-                                            <div className="text-slate-400 text-xs mt-1">NDVI Index: 0.31</div>
+                                        <div>
+                                            <span className="text-slate-400">HEALTH INDEX: </span>
+                                            <span className={selectedZone === 'Zone-A' ? 'text-emerald-400' : selectedZone === 'Zone-B' ? 'text-amber-400' : 'text-rose-400'}>
+                                                {selectedZone === 'Zone-A' ? '0.88 (OPTIMAL)' : selectedZone === 'Zone-B' ? '0.52 (HYDRATION STRESS)' : '0.31 (PEST RISK)'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 flex flex-col justify-between">
-                                    <div>
-                                        <h3 className="text-base font-semibold text-slate-200 mb-2">📹 Aerial Inspection Video Stream</h3>
-                                        <div className="w-full h-48 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center relative overflow-hidden">
-                                            <div className="text-center z-10">
-                                                <span className="text-3xl">🚁</span>
-                                                <p className="text-xs text-emerald-400 mt-2 font-mono">LIVE DRONE FEED ACTIVE</p>
+                                {/* Drone HUD & Telemetry Screen */}
+                                <div className="cyber-glass p-6 rounded-2xl space-y-4">
+                                    <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                                        <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                                            <i data-lucide="plane" className="w-4 h-4 text-cyan-400"></i>
+                                            <span>Drone Patrol HUD Video Feed</span>
+                                        </h3>
+                                        <span className="text-[10px] font-mono-tech text-rose-400 animate-pulse bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">LIVE</span>
+                                    </div>
+
+                                    <div className="w-full h-56 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex flex-col justify-between p-4 font-mono-tech text-[10px]">
+                                        {/* Crosshair Graphic */}
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                                            <div className="w-24 h-24 border border-cyan-400 rounded-full flex items-center justify-center">
+                                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="text-xs text-slate-400 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                        GPS Telemetry: 13.0827° N, 80.2707° E
+
+                                        <div className="flex justify-between text-cyan-400">
+                                            <span>ALT: 42.8m</span>
+                                            <span>SPEED: 12.4 km/h</span>
+                                        </div>
+
+                                        <div className="text-center text-slate-400 text-xs">
+                                            <div className="text-emerald-400 font-bold">MULTISPECTRAL FEED ACTIVE</div>
+                                            <div className="text-[10px] text-slate-500">GPS: 13.0827° N, 80.2707° E</div>
+                                        </div>
+
+                                        <div className="flex justify-between text-cyan-400">
+                                            <span>PITCH: +2.4°</span>
+                                            <span>BATTERY: 88%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
+
+                        {/* TAB 4: PATHOLOGY SCANNER */}
+                        {activeTab === 'scanner' && (
+                            <div className="cyber-glass p-6 rounded-2xl space-y-6">
+                                <div className="border-b border-slate-800/80 pb-4">
+                                    <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                        <i data-lucide="scan-line" className="w-5 h-5 text-amber-400"></i>
+                                        <span>Automated Pathology & Pest Diagnostic Scanner</span>
+                                    </h3>
+                                    <p className="text-xs text-slate-400 font-mono-tech mt-1">
+                                        Real-time computer vision pathology classification and organic treatment recommendations.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+                                        <div className="flex justify-between items-center text-xs font-mono-tech">
+                                            <span className="text-slate-400">LATEST SAMPLE DIAGNOSIS #8841</span>
+                                            <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">SEVERITY: MEDIUM</span>
+                                        </div>
+
+                                        <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                                            <div className="text-sm font-bold text-slate-200">Classified Issue: Tomato Early Blight (Alternaria solani)</div>
+                                            <p className="text-xs text-slate-400">
+                                                Concentric leaf spots detected in Zone C grid 14. Spectral signature indicates early fungal spore proliferation.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2 text-xs font-mono-tech">
+                                            <div className="text-slate-400">RECOMMENDED INTERVENTION:</div>
+                                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl">
+                                                • Apply organic copper fungicide vapor via thermal fogger array.<br/>
+                                                • Reduce canopy moisture by modifying drip interval to early morning.
+                                            </div>
+                                        </div>
+
+                                        <button className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl transition font-mono-tech">
+                                            SCHEDULE AUTOMATED INTERVENTION
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-slate-200 font-mono-tech mb-2">Historical Outbreak Matrix</h4>
+                                            <div className="space-y-2 text-xs font-mono-tech">
+                                                <div className="flex justify-between p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
+                                                    <span>Leaf Rust (Zone A)</span>
+                                                    <span className="text-emerald-400">RESOLVED</span>
+                                                </div>
+                                                <div className="flex justify-between p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
+                                                    <span>Aphid Cluster (Zone B)</span>
+                                                    <span className="text-emerald-400">MONITORED</span>
+                                                </div>
+                                                <div className="flex justify-between p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
+                                                    <span>Early Blight (Zone C)</span>
+                                                    <span className="text-amber-400">ACTION REQUIRED</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[10px] text-slate-500 font-mono-tech text-center border-t border-slate-800 pt-3">
+                                            Pathology engine synced with global plant pathology database.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 5: AUTOMATION ENGINE */}
+                        {activeTab === 'rules' && (
+                            <div className="cyber-glass p-6 rounded-2xl space-y-6">
+                                <div className="border-b border-slate-800/80 pb-4">
+                                    <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                        <i data-lucide="cpu" className="w-5 h-5 text-cyan-400"></i>
+                                        <span>Autonomous Rules & Trigger Rules Engine</span>
+                                    </h3>
+                                    <p className="text-xs text-slate-400 font-mono-tech mt-1">
+                                        Configure automatic actuator trigger conditions based on live telemetry thresholds.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {rules.map(rule => (
+                                        <div key={rule.id} className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-200">{rule.name}</div>
+                                                <div className="text-xs font-mono-tech text-slate-400 mt-1">
+                                                    IF <span className="text-amber-400">{rule.condition}</span> THEN <span className="text-emerald-400">{rule.action}</span>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => {
+                                                    setRules(rules.map(r => r.id === rule.id ? { ...r, active: !r.active } : r));
+                                                }}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-mono-tech font-bold transition border ${
+                                                    rule.active 
+                                                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                                                        : 'bg-slate-800 text-slate-500 border-slate-700'
+                                                }`}
+                                            >
+                                                {rule.active ? 'TRIGGER ENABLED' : 'DISABLED'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                     </main>
+
+                    {/* MODAL E-STOP CONFIRMATION */}
+                    {showEStopModal && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="cyber-glass p-6 rounded-2xl max-w-md w-full border-rose-500/50 space-y-4">
+                                <div className="flex items-center space-x-3 text-rose-400">
+                                    <i data-lucide="triangle-alert" className="w-6 h-6"></i>
+                                    <h3 className="text-lg font-bold font-mono-tech">CONFIRM EMERGENCY E-STOP</h3>
+                                </div>
+                                <p className="text-xs text-slate-300">
+                                    This will immediately send a hard halt command to all agricultural rovers, close all drip irrigation solenoids, and cut high-voltage fogger arrays.
+                                </p>
+                                <div className="flex justify-end space-x-3 pt-2">
+                                    <button 
+                                        onClick={() => setShowEStopModal(false)}
+                                        className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-mono-tech rounded-xl hover:bg-slate-700"
+                                    >
+                                        CANCEL
+                                    </button>
+                                    <button 
+                                        onClick={confirmEmergencyStop}
+                                        className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono-tech rounded-xl"
+                                    >
+                                        EXECUTE SHUTDOWN
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        // Separate Chart Component using Chart.js
+        function TelemetryChart() {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const ctx = chartRef.current.getContext('2d');
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                        datasets: [
+                            {
+                                label: 'Soil Moisture (%)',
+                                data: [42, 41, 39, 45, 48, 44, 44.2],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Soil Temperature (°C)',
+                                data: [22, 21, 24, 29, 31, 28, 26.8],
+                                borderColor: '#06b6d4',
+                                backgroundColor: 'transparent',
+                                borderDash: [5, 5],
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(30, 41, 59, 0.5)' },
+                                ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(30, 41, 59, 0.5)' },
+                                ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, []);
+
+            return (
+                <div className="w-full h-64">
+                    <canvas ref={chartRef}></canvas>
                 </div>
             );
         }
@@ -407,4 +1000,3 @@
     </script>
 </body>
 </html>
-`
